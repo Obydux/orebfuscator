@@ -31,10 +31,10 @@ public class BlockStrategy {
 	}
 
 	public static BitStorage readBitStorage(ByteBuf buffer, Palette palette) {
-		return BitStorage.read(buffer, PalettedContainerStrategy.BIOMES.size(), palette);
+		return BitStorage.read(buffer, PalettedContainerStrategy.BLOCK_STATES.size(), palette);
 	}
 
 	public static BitStorage.Writer createBitStorageWriter(ByteBuf buffer, Palette palette) {
-		return BitStorage.createWriter(buffer, PalettedContainerStrategy.BIOMES.size(), palette);
+		return BitStorage.createWriter(buffer, PalettedContainerStrategy.BLOCK_STATES.size(), palette);
 	}
 }

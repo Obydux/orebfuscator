@@ -62,7 +62,9 @@ public class PalettedContainerStrategy {
 	}
 
 	Palette createPalette(List<Integer> values) {
-		int bits = MathUtil.ceilLog2(values.size());
+		int bits = values.size() == 1
+			? 0
+			: MathUtil.ceilLog2(values.size());
 		return getConfiguration(bits).createPalette(values);
 	}
 
