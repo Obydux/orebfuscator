@@ -27,6 +27,12 @@
 					<minimizeJar>true</minimizeJar>
 					<filters>
 						<filter>
+							<artifact>*:lz4-java</artifact>
+							<includes>
+								<include>**</include>
+							</includes>
+						</filter>
+						<filter>
 							<artifact>*:*</artifact>
 							<excludeDefaults>false</excludeDefaults>
 							<includes>
@@ -42,6 +48,10 @@
 						<relocation>
 							<pattern>org.joml</pattern>
 							<shadedPattern>net.imprex.shaded.org.joml</shadedPattern>
+						</relocation>
+						<relocation>
+							<pattern>net.jpountz</pattern>
+							<shadedPattern>net.imprex.shaded.net.jpountz</shadedPattern>
 						</relocation>
 					</relocations>
 				</configuration>
@@ -83,6 +93,12 @@
 			<groupId>org.bstats</groupId>
 			<artifactId>bstats-bukkit</artifactId>
 			<version>${dependency.bstats.version}</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.lz4</groupId>
+			<artifactId>lz4-java</artifactId>
+			<version>${dependency.lz4.version}</version>
 			<scope>compile</scope>
 		</dependency>
 
