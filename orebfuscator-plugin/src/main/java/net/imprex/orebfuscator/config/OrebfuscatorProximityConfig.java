@@ -10,9 +10,8 @@ import org.joml.Matrix4f;
 
 import net.imprex.orebfuscator.OrebfuscatorNms;
 import net.imprex.orebfuscator.config.components.WeightedBlockList;
-import net.imprex.orebfuscator.util.BlockPos;
+import net.imprex.orebfuscator.config.context.ConfigParsingContext;
 import net.imprex.orebfuscator.util.BlockProperties;
-import net.imprex.orebfuscator.util.OFCLogger;
 
 public class OrebfuscatorProximityConfig extends AbstractWorldConfig implements ProximityConfig {
 
@@ -33,43 +32,27 @@ public class OrebfuscatorProximityConfig extends AbstractWorldConfig implements 
 	private Map<BlockProperties, Integer> hiddenBlocks = new LinkedHashMap<>();
 	private Set<BlockProperties> allowForUseBlockBelow = new HashSet<>();
 
-	OrebfuscatorProximityConfig(ConfigurationSection section) {
+	OrebfuscatorProximityConfig(ConfigurationSection section, ConfigParsingContext context) {
 		super(section.getName());
 		this.deserializeBase(section);
-		this.deserializeWorlds(section, "worlds");
+		this.deserializeWorlds(section, context, "worlds");
 
-		// LEGACY: transform to post 5.2.2
-		if (section.isConfigurationSection("defaults")) {
-			int y = section.getInt("defaults.y");
-			if (section.getBoolean("defaults.above")) {
-				this.minY = y;
-				this.maxY = BlockPos.MAX_Y;
-			} else {
-				this.minY = BlockPos.MIN_Y;
-				this.minY = y;
-			}
-			section.set("useBlockBelow", section.getBoolean("defaults.useBlockBelow"));
-		}
-
-		if ((this.distance = section.getInt("distance", 24)) < 1) {
-			this.fail("distance must be higher than zero");
-		}
+		this.distance = section.getInt("distance", 24);
+		context.errorMinValue("distance", 1, this.distance);
 
 		this.frustumCullingEnabled = section.getBoolean("frustumCulling.enabled", false);
 		this.frustumCullingMinDistance = (float) section.getDouble("frustumCulling.minDistance", 3);
 		this.frustumCullingFov = (float) section.getDouble("frustumCulling.fov", 80d);
 
 		if (this.frustumCullingEnabled && (this.frustumCullingFov < 10 || this.frustumCullingFov > 170)) {
-			this.fail("frustum fov has to be between 10 and 170");
+			context.errorMinMaxValue("frustumCulling.fov", 10, 170, (int) this.frustumCullingFov);
 		}
 
 		this.frustumCullingMinDistanceSquared = frustumCullingMinDistance * frustumCullingMinDistance;
 		this.frustumCullingProjectionMatrix = new Matrix4f() // create projection matrix with aspect 16:9
 				.perspective(frustumCullingFov, 16f / 9f, 0.01f, 2 * distance);
 
-		this.rayCastCheckEnabled = section.getBoolean("rayCastCheck.enabled",
-				section.getBoolean("useRayCastCheck",
-				section.getBoolean("useFastGazeCheck", false)));
+		this.rayCastCheckEnabled = section.getBoolean("rayCastCheck.enabled", false);
 		this.rayCastCheckOnlyCheckCenter = section.getBoolean("rayCastCheck.onlyCheckCenter", false);
 
 		this.defaultBlockFlags = ProximityHeightCondition.create(minY, maxY);
@@ -77,12 +60,14 @@ public class OrebfuscatorProximityConfig extends AbstractWorldConfig implements 
 			this.defaultBlockFlags |= BlockFlags.FLAG_USE_BLOCK_BELOW;
 		}
 
-		this.deserializeHiddenBlocks(section, "hiddenBlocks");
-		this.deserializeRandomBlocks(section, "randomBlocks");
+		this.deserializeHiddenBlocks(section, context, "hiddenBlocks");
+		this.deserializeRandomBlocks(section, context, "randomBlocks");
 
 		for (WeightedBlockList blockList : this.weightedBlockLists) {
 			this.allowForUseBlockBelow.addAll(blockList.getBlocks());
 		}
+
+		this.disableOnError(context);
 	}
 
 	protected void serialize(ConfigurationSection section) {
@@ -103,7 +88,9 @@ public class OrebfuscatorProximityConfig extends AbstractWorldConfig implements 
 		this.serializeRandomBlocks(section, "randomBlocks");
 	}
 
-	private void deserializeHiddenBlocks(ConfigurationSection section, String path) {
+	private void deserializeHiddenBlocks(ConfigurationSection section, ConfigParsingContext context, String path) {
+		context = context.section(path);
+
 		ConfigurationSection blockSection = section.getConfigurationSection(path);
 		if (blockSection == null) {
 			return;
@@ -112,26 +99,11 @@ public class OrebfuscatorProximityConfig extends AbstractWorldConfig implements 
 		for (String blockName : blockSection.getKeys(false)) {
 			BlockProperties blockProperties = OrebfuscatorNms.getBlockByName(blockName);
 			if (blockProperties == null) {
-				warnUnknownBlock(section, path, blockName);
+				context.warnUnknownBlock(blockName);
 			} else if (blockProperties.getDefaultBlockState().isAir()) {
-		        OFCLogger.warn(String.format("config section '%s.%s' contains air block '%s', skipping",
-		                section.getCurrentPath(), path, blockName));
+				context.warnAirBlock(blockName);
 			} else {
 				int blockFlags = this.defaultBlockFlags;
-
-				// LEGACY: parse pre 5.2.2 height condition
-				if (blockSection.isInt(blockName + ".y") && blockSection.isBoolean(blockName + ".above")) {
-					blockFlags = ProximityHeightCondition.remove(blockFlags);
-
-					int y = blockSection.getInt(blockName + ".y");
-					if (blockSection.getBoolean(blockName + ".above")) {
-						blockFlags |= ProximityHeightCondition.create(y, BlockPos.MAX_Y);
-					} else {
-						blockFlags |= ProximityHeightCondition.create(BlockPos.MIN_Y, y);
-					}
-
-					usesBlockSpecificConfigs = true;
-				}
 
 				// parse block specific height condition
 				if (blockSection.isInt(blockName + ".minY") && blockSection.isInt(blockName + ".maxY")) {
@@ -160,7 +132,7 @@ public class OrebfuscatorProximityConfig extends AbstractWorldConfig implements 
 		}
 
 		if (this.hiddenBlocks.isEmpty()) {
-			this.failMissingOrEmpty(section, path);
+			context.errorMissingOrEmpty();
 		}
 	}
 

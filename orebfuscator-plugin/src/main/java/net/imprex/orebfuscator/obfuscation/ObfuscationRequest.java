@@ -1,6 +1,5 @@
 package net.imprex.orebfuscator.obfuscation;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -17,6 +16,8 @@ public class ObfuscationRequest {
 
 	private static final HashFunction HASH_FUNCTION = Hashing.murmur3_128();
 	private static final byte[] EMPTY_HASH = new byte[0];
+
+	public static final int HASH_LENGTH = HASH_FUNCTION.bits() / Byte.SIZE;
 
 	private static final byte[] hash(byte[] systemHash, byte[] data) {
 		return HASH_FUNCTION.newHasher().putBytes(systemHash).putBytes(data).hash().asBytes();
@@ -52,12 +53,12 @@ public class ObfuscationRequest {
 		return position;
 	}
 
-	public ChunkStruct getChunkStruct() {
-		return chunkStruct;
+	public byte[] getChunkHash() {
+		return chunkHash;
 	}
 
-	public boolean isValid(ObfuscationResult result) {
-		return result != null && Arrays.equals(result.getHash(), this.chunkHash);
+	public ChunkStruct getChunkStruct() {
+		return chunkStruct;
 	}
 
 	public CompletableFuture<ObfuscationResult> submitForObfuscation() {

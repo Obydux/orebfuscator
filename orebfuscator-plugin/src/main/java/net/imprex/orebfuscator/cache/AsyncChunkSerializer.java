@@ -11,7 +11,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import net.imprex.orebfuscator.Orebfuscator;
-import net.imprex.orebfuscator.obfuscation.ObfuscationResult;
 import net.imprex.orebfuscator.util.ChunkPosition;
 
 /**
@@ -44,9 +43,11 @@ public class AsyncChunkSerializer implements Runnable {
 		this.thread = new Thread(Orebfuscator.THREAD_GROUP, this, "ofc-chunk-serializer");
 		this.thread.setDaemon(true);
 		this.thread.start();
+
+		orebfuscator.getStatistics().setDiskCacheQueueLengthSupplier(() -> this.tasks.size());
 	}
 
-	public CompletableFuture<ObfuscationResult> read(ChunkPosition position) {
+	public CompletableFuture<CompressedObfuscationResult> read(ChunkPosition position) {
 		this.lock.lock();
 		try {
 			Runnable task = this.tasks.get(position);
@@ -55,7 +56,7 @@ public class AsyncChunkSerializer implements Runnable {
 			} else if (task instanceof ReadTask) {
 				return ((ReadTask) task).future;
 			} else {
-				CompletableFuture<ObfuscationResult> future = new CompletableFuture<>();
+				CompletableFuture<CompressedObfuscationResult> future = new CompletableFuture<>();
 				this.queueTask(position, new ReadTask(position, future));
 				return future;
 			}
@@ -64,7 +65,7 @@ public class AsyncChunkSerializer implements Runnable {
 		}
 	}
 
-	public void write(ChunkPosition position, ObfuscationResult chunk) {
+	public void write(ChunkPosition position, CompressedObfuscationResult chunk) {
 		this.lock.lock();
 		try {
 			Runnable prevTask = this.queueTask(position, new WriteTask(position, chunk));
@@ -133,9 +134,9 @@ public class AsyncChunkSerializer implements Runnable {
 
 	private class WriteTask implements Runnable {
 		private final ChunkPosition position;
-		private final ObfuscationResult chunk;
+		private final CompressedObfuscationResult chunk;
 
-		public WriteTask(ChunkPosition position, ObfuscationResult chunk) {
+		public WriteTask(ChunkPosition position, CompressedObfuscationResult chunk) {
 			this.position = position;
 			this.chunk = chunk;
 		}
@@ -152,9 +153,9 @@ public class AsyncChunkSerializer implements Runnable {
 
 	private class ReadTask implements Runnable {
 		private final ChunkPosition position;
-		private final CompletableFuture<ObfuscationResult> future;
+		private final CompletableFuture<CompressedObfuscationResult> future;
 
-		public ReadTask(ChunkPosition position, CompletableFuture<ObfuscationResult> future) {
+		public ReadTask(ChunkPosition position, CompletableFuture<CompressedObfuscationResult> future) {
 			this.position = position;
 			this.future = future;
 		}
@@ -164,7 +165,7 @@ public class AsyncChunkSerializer implements Runnable {
 			try {
 				future.complete(ChunkSerializer.read(position));
 			} catch (IOException e) {
-				e.printStackTrace();
+				future.completeExceptionally(e);
 			}
 		}
 	}
