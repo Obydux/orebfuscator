@@ -38,7 +38,7 @@ public class IndirectPalette implements Palette {
 				}
 			}
 
-			return new IndirectPalette(bitsPerEntry, byIndex, maxValue);
+			return new IndirectPalette(bitsPerEntry, byIndex, maxValue + 1);
 		}
 		
 		@Override
@@ -55,7 +55,7 @@ public class IndirectPalette implements Palette {
 				}
 			}
 
-			return new IndirectPalette(bitsPerEntry, byIndex, maxValue);
+			return new IndirectPalette(bitsPerEntry, byIndex, maxValue + 1);
 		}
 	};
 
@@ -65,6 +65,10 @@ public class IndirectPalette implements Palette {
 	private final BitSet byValuePresent;
 	private final byte[] byValue;
 	private final int[] byIndex;
+	
+	/*
+	 * TODO: remove byValue if PaletteBuilder is reworked
+	 */
 
 	public IndirectPalette(int bitsPerEntry, int[] byIndex, int maxValue) {
 		this.size = byIndex.length;

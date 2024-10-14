@@ -22,7 +22,7 @@ public interface Palette {
 
 		Palette read(ByteBuf buffer, int bitsPerEntry);
 
-		Palette create(int bitsPerEntry, List<Integer> values	);
+		Palette create(int bitsPerEntry, List<Integer> values);
 	}
 
 	public interface Builder {

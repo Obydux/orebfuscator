@@ -40,21 +40,25 @@ public class Chunk implements AutoCloseable {
 		this.outputBuffer = PooledByteBufAllocator.DEFAULT.heapBuffer(chunkStruct.data.length);
 
 		for (int sectionIndex = 0; sectionIndex < this.sections.length; sectionIndex++) {
-			if (chunkStruct.sectionMask.get(sectionIndex)) {
-				ChunkSegment sectionHolder;
+			try {
+				if (chunkStruct.sectionMask.get(sectionIndex)) {
+					ChunkSegment sectionHolder;
 
-				if (bundle.skipReadSectionIndex(sectionIndex)) {
-					sectionHolder = new SkippedChunkSegment(ChunkSection.skip(inputBuffer));
-				} else {
-					ChunkSection chunkSection = new ChunkSection(inputBuffer);
-					if (bundle.skipProcessingSectionIndex(sectionIndex)) {
-						sectionHolder = new ReadOnlyChunkSegment(chunkSection);
+					if (bundle.skipReadSectionIndex(sectionIndex)) {
+						sectionHolder = new SkippedChunkSegment(ChunkSection.skip(inputBuffer));
 					} else {
-						sectionHolder = new ProcessingChunkSegment(chunkSection);
+						ChunkSection chunkSection = new ChunkSection(inputBuffer);
+						if (bundle.skipProcessingSectionIndex(sectionIndex)) {
+							sectionHolder = new ReadOnlyChunkSegment(chunkSection);
+						} else {
+							sectionHolder = new ProcessingChunkSegment(chunkSection);
+						}
 					}
-				}
 
-				this.sections[sectionIndex] = sectionHolder;
+					this.sections[sectionIndex] = sectionHolder;
+				}
+			} catch (Exception e) {
+				throw new RuntimeException("An error occurred while reading chunk section: " + sectionIndex, e);
 			}
 		}
 

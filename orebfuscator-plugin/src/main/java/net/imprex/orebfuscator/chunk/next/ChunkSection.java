@@ -11,7 +11,7 @@ import net.imprex.orebfuscator.chunk.next.strategies.BlockStrategy;
 public class ChunkSection {
 
 	static ByteBuf skip(ByteBuf buffer) {
-		int readerIndex = buffer.readerIndex();
+		int startIndex = buffer.readerIndex();
 
 		buffer.skipBytes(2); // skip block count
 
@@ -25,12 +25,11 @@ public class ChunkSection {
 			BiomeStrategy.skipBitStorage(buffer, bitsPerBiome);
 		}
 
-		int sectionLength = buffer.readerIndex() - readerIndex;
-		return buffer.slice(readerIndex, sectionLength);
+		int sectionLength = buffer.readerIndex() - startIndex;
+		return buffer.slice(startIndex, sectionLength);
 	}
 
 	public final int blockCount;
-	public final int bitsPerBlock;
 
 	public final Palette blockPalette;
 	public final BitStorage blockBitStorage;
@@ -43,19 +42,19 @@ public class ChunkSection {
 
 		this.blockCount = buffer.readShort();
 
-		this.bitsPerBlock = buffer.readUnsignedByte();
-		this.blockPalette = BlockStrategy.readPalette(buffer, this.bitsPerBlock);
+		int bitsPerBlock = buffer.readUnsignedByte();
+		this.blockPalette = BlockStrategy.readPalette(buffer, bitsPerBlock);
 		this.blockBitStorage = BlockStrategy.readBitStorage(buffer, this.blockPalette);
 
 		if (ChunkCapabilities.hasBiomePalettedContainer()) {
-			int suffixOffset = buffer.readerIndex();
+			int suffixStart = buffer.readerIndex();
 
 			int bitsPerBiome = buffer.readUnsignedByte();
 			BiomeStrategy.skipPalette(buffer, bitsPerBiome);
 			BiomeStrategy.skipBitStorage(buffer, bitsPerBiome);
 
-			int suffixLength = buffer.readerIndex() - suffixOffset;
-			this.biomeSlice = buffer.slice(suffixOffset, suffixLength);
+			int suffixLength = buffer.readerIndex() - suffixStart;
+			this.biomeSlice = buffer.slice(suffixStart, suffixLength);
 		} else {
 			this.biomeSlice = Unpooled.EMPTY_BUFFER;
 		}

@@ -86,6 +86,11 @@ public class SimpleBitStorage implements BitStorage {
 		private long longBuffer = 0;
 
 		private int capacity;
+		
+		/*
+		 * TODO: Investigate if long[] + flush is faster than
+		 * write once
+		 */
 
 		public Writer(ByteBuf buffer, int size, Palette palette) {
 			this.bitsPerEntry = palette.getBitsPerEntry();

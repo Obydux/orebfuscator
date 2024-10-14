@@ -16,7 +16,7 @@ public class EmptyBitStorage implements BitStorage {
 
 	public static BitStorage read(ByteBuf buffer, int size, Palette palette) {
 		if (palette.getBitsPerEntry() != 0) {
-			throw new IllegalArgumentException("invalid palette!");
+			throw new IllegalArgumentException("Invalid palette, expected single valued palette!");
 		}
 
 		// skip length field
